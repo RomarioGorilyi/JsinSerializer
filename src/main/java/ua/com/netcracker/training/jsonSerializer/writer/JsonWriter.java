@@ -3,8 +3,7 @@ package ua.com.netcracker.training.jsonSerializer.writer;
 import lombok.Data;
 import lombok.NonNull;
 
-import java.io.IOException;
-import java.io.Writer;
+import java.io.*;
 
 /**
  * @author Roman Horilyi

@@ -1,13 +1,10 @@
 package ua.com.netcracker.training.jsonSerializer.serializer;
 
-import org.reflections.Reflections;
 import ua.com.netcracker.training.jsonSerializer.mapper.*;
-import ua.com.netcracker.training.jsonSerializer.writer.IndentedJsonWriter;
 import ua.com.netcracker.training.jsonSerializer.writer.JsonWriter;
 
 import java.io.*;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,7 +35,6 @@ public class JsonSerializer {
     public JsonSerializer(boolean indent) {
         mappersCache = new HashMap<>();
         initializeMappersCache();
-
         this.indent = indent;
     }
 
@@ -46,12 +42,13 @@ public class JsonSerializer {
      * Initializes {@link #mappersCache} with default mappers.
      */
     private void initializeMappersCache() {
-        mappersCache.put(Collection.class, new CollectionMapper());
-        mappersCache.put(String.class, new StringMapper());
-        mappersCache.put(Number.class, new NumberMapper());
-        mappersCache.put(Map.class, new MapMapper());
-        mappersCache.put(Boolean.class, new BooleanMapper());
-        mappersCache.put(Object[].class, new ObjectArrayMapper());
+        mappersCache.put(Collection.class, new CollectionMapper(this));
+        mappersCache.put(String.class, new StringMapper(this));
+        mappersCache.put(Character.class, new StringMapper(this));
+        mappersCache.put(Number.class, new NumberMapper(this));
+        mappersCache.put(Map.class, new MapMapper(this));
+        mappersCache.put(Boolean.class, new BooleanMapper(this));
+        mappersCache.put(Object[].class, new ObjectArrayMapper(this));
     }
 
     public boolean isIndent() {
@@ -62,8 +59,33 @@ public class JsonSerializer {
         this.indent = indent;
     }
 
+    /**
+     *
+     * @param clazz
+     * @return
+     */
     public JsonMapper getMapper(Class clazz) {
-        return mappersCache.get(clazz);
+        if (mappersCache.containsKey(clazz)) {
+            return mappersCache.get(clazz);
+
+        } else if (mappersCache.containsKey(clazz.getSuperclass())) {
+            return mappersCache.get(clazz.getSuperclass());
+
+        } else if (Map.class.isAssignableFrom(clazz)) {
+            return mappersCache.get(Map.class); // TODO or simply return new MapMapper(); ?
+
+        } else if (Collection.class.isAssignableFrom(clazz)) {
+            return mappersCache.get(Collection.class); // TODO the same situation as in the previous case
+
+        } else if (clazz.isArray()) {
+            if (clazz.getComponentType().isPrimitive()) {
+                return new PrimitiveArrayMapper(this);
+            } else {
+                return new ObjectArrayMapper(this);
+            }
+        }
+
+        return new PojoMapper(this);
     }
 
     public void serialize(Object object) throws IllegalStateException {
@@ -87,10 +109,9 @@ public class JsonSerializer {
         }
     }
 
-
-    protected void serialize(Object obj, JsonWriter jsonWriter) {
-        // TODO call getMapper(), then a Mapper
-        Class clazz = obj.getClass();
+    protected void serialize(Object object, JsonWriter jsonWriter) {
+        JsonMapper jsonMapper = getMapper(object.getClass());
+        jsonMapper.write(object, jsonWriter);
         try {
             jsonWriter.flush();
         } catch (IOException e) {
@@ -100,9 +121,15 @@ public class JsonSerializer {
 
     // TODO debugging mode
     public static void main(String[] args) {
-        JsonMapper<Collection> jsonMapper = new CollectionMapper();
+        JsonSerializer jsonSerializer = new JsonSerializer(false);
+        JsonMapper<Collection> jsonMapper = new CollectionMapper(jsonSerializer);
 
-        int[] numbers = new int[10];
+        int[] ints = new int[10];
+        System.out.println(ints.getClass().getComponentType().isPrimitive());
+        System.out.println(ints.getClass().isArray());
+
+
+        /*int[] numbers = new int[10];
         System.out.println(numbers.getClass().getSimpleName());
         System.out.println(numbers.getClass());
         System.out.println(numbers.getClass().getName());
@@ -137,5 +164,6 @@ public class JsonSerializer {
 
         Integer integer = 5;
         System.out.println(Arrays.toString(integer.getClass().getDeclaredFields()));
+        */
     }
 }

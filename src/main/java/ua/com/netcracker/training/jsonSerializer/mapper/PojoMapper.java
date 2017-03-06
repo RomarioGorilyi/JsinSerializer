@@ -6,13 +6,14 @@ import ua.com.netcracker.training.jsonSerializer.writer.JsonWriter;
 /**
  * @author Roman Horilyi
  */
-public abstract class JsonMapper<T> {
+public class PojoMapper extends JsonMapper<Object> {
 
-    private JsonSerializer jsonSerializer;
-
-    public JsonMapper(JsonSerializer jsonSerializer) {
-        this.jsonSerializer = jsonSerializer;
+    public PojoMapper(JsonSerializer jsonSerializer) {
+        super(jsonSerializer);
     }
 
-    public abstract void write(T obj, JsonWriter jsonWriter);
+    @Override
+    public void write(Object obj, JsonWriter jsonWriter) {
+
+    }
 }
